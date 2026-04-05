@@ -28,6 +28,15 @@ import datetime
 from typing import Any
 from urllib.parse import quote
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+if load_dotenv is not None:
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"), override=False)
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env.local"), override=False)
+
 HOSTED_MODE = True
 
 def get_app_root():
@@ -19026,7 +19035,7 @@ async function displayMessage(msg, isUser, index) {
                 <!-- NAVIGATION -->
                 <div class="nav-group">
                     <button class="nav-arrow" id="nav-prev-${index}" onclick="navigateBranch(${index}, -1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-                    <span class="nav-counter" id="nav-counter-${index}">0/0</span>
+                    <span class="nav-counter" id="nav-counter-${index}">...</span>
                     <button class="nav-arrow" id="nav-next-${index}" onclick="navigateBranch(${index}, 1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
                 </div>
             </div>
@@ -19158,6 +19167,11 @@ async function updateBranchDropdown(messageIndex) {
     if (!branchMenu) return;
     
     branchMenu.innerHTML = '';
+    const navCounter = document.getElementById(`nav-counter-${messageIndex}`);
+    const navPrev = document.getElementById(`nav-prev-${messageIndex}`);
+    const navNext = document.getElementById(`nav-next-${messageIndex}`);
+    const navGroup = navCounter ? navCounter.closest('.nav-group') : null;
+    const previousCounterText = navCounter ? navCounter.innerText : "";
     
     const [branchesResp, conversationsResp, historyResp] = await Promise.all([
         fetch('/branches'),
@@ -19186,13 +19200,8 @@ async function updateBranchDropdown(messageIndex) {
     }
 
     // UI Elements
-    const navCounter = document.getElementById(`nav-counter-${messageIndex}`);
-    const navPrev = document.getElementById(`nav-prev-${messageIndex}`);
-    const navNext = document.getElementById(`nav-next-${messageIndex}`);
-
     if (relevantBranches.size === 0) {
-        if(navCounter) navCounter.innerText = "0/0";
-        const navGroup = navCounter ? navCounter.closest('.nav-group') : null;
+        if(navCounter) navCounter.innerText = previousCounterText || "0/0";
         if (navGroup) navGroup.style.display = "none";
         return;
     }
@@ -19277,9 +19286,8 @@ async function updateBranchDropdown(messageIndex) {
 
     // --- 6. Update UI ---
     if (navCounter) {
-        const navGroup = navCounter.closest('.nav-group');
         if (totalVersions <= 1) {
-            navCounter.innerText = "0/0";
+            navCounter.innerText = previousCounterText || "0/0";
             if (navGroup) navGroup.style.display = "none";
             if (navPrev) navPrev.disabled = true;
             if (navNext) navNext.disabled = true;
@@ -19388,7 +19396,7 @@ async function updateBranchDropdown(messageIndex) {
                     </div>
                     <div class="nav-group" style="display: none;">
                         <button class="nav-arrow" id="nav-prev-${index}" onclick="navigateBranch(${index}, -1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-                        <span class="nav-counter" id="nav-counter-${index}">0/0</span>
+                        <span class="nav-counter" id="nav-counter-${index}">...</span>
                         <button class="nav-arrow" id="nav-next-${index}" onclick="navigateBranch(${index}, 1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
                     </div>
                 </div>
@@ -19630,7 +19638,8 @@ async function updateBranchDropdown(messageIndex) {
             const botControls = botMessageDiv.querySelector('.message-controls');
             if (botControls) {
                 botControls.style.display = 'flex';
-                botControls.querySelectorAll('button, .nav-group').forEach(el => el.style.display = '');
+                botControls.querySelectorAll('button').forEach(el => el.style.display = '');
+                botControls.querySelectorAll('.nav-group').forEach(el => el.style.display = 'none');
             }
             if (prevUserMsgDiv) {
                 const c = prevUserMsgDiv.querySelector('.message-controls');
@@ -19912,7 +19921,7 @@ async function editMessage(index) {
                     </div>
                     <div class="nav-group" style="display: none;">
                         <button class="nav-arrow" id="nav-prev-${botIndex}" onclick="navigateBranch(${botIndex}, -1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-                        <span class="nav-counter" id="nav-counter-${botIndex}">0/0</span>
+                        <span class="nav-counter" id="nav-counter-${botIndex}">...</span>
                         <button class="nav-arrow" id="nav-next-${botIndex}" onclick="navigateBranch(${botIndex}, 1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
                     </div>
                 </div>
@@ -20189,7 +20198,8 @@ async function editMessage(index) {
                 const botControls = botMessageDiv.querySelector('.message-controls');
                 if (botControls) {
                     botControls.style.display = 'flex';
-                    botControls.querySelectorAll('button, .nav-group').forEach(el => el.style.display = '');
+                    botControls.querySelectorAll('button').forEach(el => el.style.display = '');
+                    botControls.querySelectorAll('.nav-group').forEach(el => el.style.display = 'none');
                 }
                 if (newUserMsgDiv) {
                     const c = newUserMsgDiv.querySelector('.message-controls');
@@ -20667,7 +20677,7 @@ async function sendMessage() {
                 </div>
                 <div class="nav-group" style="display: none;">
                     <button class="nav-arrow" id="nav-prev-${botIndex}" onclick="navigateBranch(${botIndex}, -1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-                    <span class="nav-counter" id="nav-counter-${botIndex}">0/0</span>
+                    <span class="nav-counter" id="nav-counter-${botIndex}">...</span>
                     <button class="nav-arrow" id="nav-next-${botIndex}" onclick="navigateBranch(${botIndex}, 1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
                 </div>
             </div>
@@ -20916,7 +20926,8 @@ async function sendMessage() {
             const botControls = botMessageDiv.querySelector('.message-controls');
             if (botControls) {
                 botControls.style.display = 'flex';
-                botControls.querySelectorAll('button, .nav-group').forEach(el => el.style.display = '');
+                botControls.querySelectorAll('button').forEach(el => el.style.display = '');
+                botControls.querySelectorAll('.nav-group').forEach(el => el.style.display = 'none');
             }
             if (userMsgDiv) {
                 const c = userMsgDiv.querySelector('.message-controls');
